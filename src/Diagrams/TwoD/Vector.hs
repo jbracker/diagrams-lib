@@ -20,8 +20,11 @@ module Diagrams.TwoD.Vector
        , direction, fromDirection,  e
        ) where
 
+import Prelude hiding ( atan2 )
+
 import Data.Basis
 import Data.VectorSpace
+import Data.Boolean
 
 import Diagrams.Coordinates
 import Diagrams.TwoD.Types
@@ -45,7 +48,7 @@ unit_Y = negateV unitY
 -- | Compute the direction of a vector, measured counterclockwise from
 --   the positive x-axis as a fraction of a full turn.  The zero
 --   vector is arbitrarily assigned the direction 0.
-direction :: (RealFloat a, Angle m a) => V2 a -> m a
+direction :: (RealFloatB a, Angle m a) => V2 a -> m a
 direction (coords -> x :& y) = convertAngle . Rad $ atan2 y x
 
 -- | Convert an angle into a unit vector pointing in that direction.
