@@ -25,6 +25,8 @@ import Data.Monoid.PosInf hiding (minimum)
 import Data.VectorSpace
 import Data.Basis    (HasBasis(..), Basis(..))
 import Data.MemoTrie (HasTrie(..))
+import Data.Boolean
+import Data.Boolean.List
 
 import Diagrams.Core
 import Diagrams.Core.Trace
@@ -36,8 +38,12 @@ import Diagrams.TwoD.Types
 import Diagrams.TwoD.Vector
 import Diagrams.Util
 
-instance ( Ord a
-         , RealFloat a
+instance ( OrdB a
+         , RealFloatB a
+         , EqB a
+         , IfB a
+         , IfB (PosInf a)
+         , BooleanOf a ~ BooleanOf (PosInf a)
          , AdditiveGroup a
          , InnerSpace a
          , HasBasis a
@@ -46,14 +52,18 @@ instance ( Ord a
          ) => Traced (Segment (V2 a)) where
   getTrace = getTrace . mkFixedSeg origin
 
-instance forall a. ( Ord a
-         , RealFloat a
-         , AdditiveGroup a
-         , InnerSpace a
-         , HasBasis a
-         , HasTrie (Basis a)
-         , a ~ Scalar a
-         ) => Traced (FixedSegment (V2 a)) where
+instance forall a. ( OrdB a
+                   , EqB a
+                   , IfB a
+                   , IfB (PosInf a)
+                   , BooleanOf a ~ BooleanOf (PosInf a)
+                   , RealFloatB a
+                   , AdditiveGroup a
+                   , InnerSpace a
+                   , HasBasis a
+                   , HasTrie (Basis a)
+                   , a ~ Scalar a
+                   ) => Traced (FixedSegment (V2 a)) where
 
 {- Given lines defined by p0 + t0 * v0 and p1 + t1 * v1, their point of
    intersection in 2D is given by
@@ -85,9 +95,9 @@ instance forall a. ( Ord a
       t0     = (perp v1 <.> p) / det
       t1     = (perp v0 <.> p) / det
     in
-      if det == 0 || t0 < 0 || t0 > 1
-        then PosInfty
-        else Finite t1
+      ifB (det ==* 0 ||* t0 <* 0 ||* t0 >* 1)
+          (PosInfty)
+          (Finite t1)
 
 {- To do intersection of a line with a cubic Bezier, we first rotate
    and scale everything so that the line has parameters (origin, unitX);
@@ -110,10 +120,10 @@ instance forall a. ( Ord a
       b  = 3*y0 - 6*y1 + 3*y2
       c  = -3*y0 + 3*y1
       d  = y0
-      ts = filter (liftA2 (&&) (>= 0) (<= 1)) (cubForm a b c d)
+      ts = filter (liftA2 (&&*) (>=* 0) (<=* 1)) (cubForm a b c d)
       xs = map (fst . unp2 . fAtParam bez') ts
     in
       case xs of
         [] -> PosInfty
-        _  -> Finite (minimum xs)
+        _  -> Finite (minimumB xs)
 
