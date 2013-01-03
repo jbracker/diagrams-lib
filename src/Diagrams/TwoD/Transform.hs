@@ -76,8 +76,7 @@ import Control.Arrow (first, second)
 
 -- | Create a transformation which performs a rotation by the given
 --   angle.  See also 'rotate'.
-rotation :: ( AdditiveGroup a
-            , Floating a
+rotation :: ( Floating a
             , HasBasis a
             , HasTrie (Basis a)
             , Angle m a
@@ -114,7 +113,6 @@ rotate = transform . rotation
 --   @CircleFrac@ arguments; it can be more convenient to write
 --   @rotateBy (1\/4)@ than @'rotate' (1\/4 :: 'CircleFrac')@.
 rotateBy :: ( Floating a
-            , Ord a
             , HasBasis a
             , HasTrie (Basis a)
             , Transformable t
@@ -146,8 +144,7 @@ rotateAbout p angle = rotate angle `under` translation (origin .-. p)
 
 -- | Construct a transformation which scales by the given factor in
 --   the x (horizontal) direction.
-scalingX :: ( AdditiveGroup a
-            , Fractional (Scalar (V2 a))
+scalingX :: ( Fractional (Scalar (V2 a))
             , HasBasis a
             , HasTrie (Basis a)
             ) => Scalar (V2 a) -> T2 a
@@ -166,8 +163,7 @@ scaleX = transform . scalingX
 
 -- | Construct a transformation which scales by the given factor in
 --   the y (vertical) direction.
-scalingY :: ( AdditiveGroup a
-            , Fractional (Scalar (V2 a))
+scalingY :: ( Fractional (Scalar (V2 a))
             , HasBasis a
             , HasTrie (Basis a)
             ) => Scalar (V2 a) -> T2 a
@@ -187,7 +183,8 @@ scaleY = transform . scalingY
 --   whatever factor required to make its width @w@.  @scaleToX@
 --   should not be applied to diagrams with a width of 0, such as
 --   'vrule'.
-scaleToX :: ( Num a, HasBasis a
+scaleToX :: ( Num a
+            , HasBasis a
             , HasTrie (Basis a)
             , Enveloped t
             , Transformable t
@@ -199,7 +196,8 @@ scaleToX w d = scaleX (w / width d) d
 --   whatever factor required to make its height @h@.  @scaleToY@
 --   should not be applied to diagrams with a height of 0, such as
 --   'hrule'.
-scaleToY :: ( Num a, HasBasis a
+scaleToY :: ( Num a
+            , HasBasis a
             , HasTrie (Basis a)
             , Enveloped t
             , Transformable t
@@ -426,18 +424,14 @@ type instance V (ScaleInv t a) = V2 a
 instance (V t ~ V2 a, HasOrigin t) => HasOrigin (ScaleInv t a) where
   moveOriginTo p (ScaleInv t v l) = ScaleInv (moveOriginTo p t) v (moveOriginTo p l)
 
-instance forall t a. ( RealFloatB a
-                     , HasBasis a
-                     , HasTrie (Basis a)
-                     , a ~ Scalar a
-                     , V t ~ V2 a
-                     , t ~ V2 a
-                     , Transformable t
-                     ) => Transformable (ScaleInv t a) where
+instance ( RealFloatB a
+         , HasBasis a
+         , HasTrie (Basis a)
+         , Transformable (V2 a)
+         ) => Transformable (ScaleInv (V2 a) a) where
   transform tr (ScaleInv t v l) = ScaleInv (trans . rot $ t) (rot v) l'
     where
-      angle :: Rad a
-      angle = direction (transform tr v) - direction v
+      angle = rad $ direction (transform tr v) - direction v
       rot :: ( Transformable t,  (V t ~ V2 a) ) => t -> t
       rot = rotateAbout l angle
       l'  = transform tr l
