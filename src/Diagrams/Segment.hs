@@ -60,6 +60,8 @@ import Diagrams.Util
 import Data.Default
 import Data.AffineSpace
 import Data.VectorSpace
+import Data.MemoTrie ( HasTrie )
+import Data.Basis ( HasBasis, Basis )
 
 import Control.Applicative (liftA2)
 import Data.Semigroup
@@ -318,7 +320,10 @@ data FixedSegment v = FLinear (Point v) (Point v)
 
 type instance V (FixedSegment v) = v
 
-instance HasLinearMap v => Transformable (FixedSegment v) where
+instance ( HasBasis v
+         , HasTrie (Basis v)
+         , V (FixedSegment v) ~ V (Point v) 
+         ) => Transformable (FixedSegment v) where
   transform t (FLinear p1 p2)
     = FLinear
       (transform t p1)
@@ -331,7 +336,9 @@ instance HasLinearMap v => Transformable (FixedSegment v) where
       (transform t c2)
       (transform t p2)
 
-instance VectorSpace v => HasOrigin (FixedSegment v) where
+instance ( VectorSpace v
+         , V (FixedSegment v) ~ V (Point v)
+         ) => HasOrigin (FixedSegment v) where
   moveOriginTo o (FLinear p1 p2)
     = FLinear
       (moveOriginTo o p1)
