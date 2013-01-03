@@ -67,6 +67,8 @@ import Data.AdditiveGroup (AdditiveGroup(..))
 import Data.Basis         (HasBasis(..), Basis(..))
 import Data.MemoTrie      (HasTrie(..))
 import Data.Default
+import Data.Boolean
+import Data.Boolean.List ( maximumByB )
 
 import Diagrams.Core
 
@@ -164,7 +166,14 @@ instance (Num a, AdditiveGroup a) => Default (PolygonOpts a) where
 
 -- | Generate the vertices of a polygon.  See 'PolygonOpts' for more
 --   information.
-polyVertices :: ( Ord a
+polyVertices :: ( OrdB a
+                , EqB a
+                , IfB (P2 a)
+                , IfB (Rad a)
+                , bool ~ BooleanOf a
+                , bool ~ BooleanOf (Rad a) 
+                , bool ~ BooleanOf (P2 a)
+                , Eq a -- TODO: Remove when problem with 'polyPolarVs' is resolved.
                 , Floating a
                 , AdditiveGroup a
                 , HasBasis a
@@ -184,7 +193,14 @@ polyVertices po = moveTo (polyCenter po) ori
             OrientTo v   -> orient v      ps
             NoOrient     -> ps
 
-polygon :: ( Ord a
+polygon :: ( OrdB a
+           , EqB a
+           , IfB (P2 a)
+           , IfB (Rad a)
+           , bool ~ BooleanOf a
+           , bool ~ BooleanOf (Rad a) 
+           , bool ~ BooleanOf (P2 a)
+           , Eq a -- TODO: Remove when problem with 'polyPolarVs' is resolved.
            , Floating a
            , AdditiveGroup a
            , HasBasis a
@@ -201,7 +217,8 @@ polygon opts = case pts of
 
 -- | Generate the vertices of a polygon specified by polar data
 --   (central angles and radii). See 'PolyPolar'.
-polyPolarVs :: ( Eq (Scalar (V (P2 a)))
+polyPolarVs :: ( EqB (Scalar (V (P2 a)))
+               , Eq (Scalar (V (P2 a))) -- TODO: Get rid of this: Diagrams.Core.scale
                , Fractional (Scalar (V (P2 a)))
                , Floating a
                , HasBasis a
@@ -237,7 +254,8 @@ polySidesVs ans ls = p0 # moveOriginTo (centroid p0)
   where p0 = polySidesVs' ans ls
 
 -- | Generate the vertices of a regular polygon.  See 'PolyRegular'.
-polyRegularVs :: ( Eq (Scalar (V (P2 a)))
+polyRegularVs :: ( EqB (Scalar (V (P2 a)))
+                 , Eq (Scalar (V (P2 a))) -- TODO: Remove when problem with 'polyPolarVs' is resolved.
                  , Fractional (Scalar (V (P2 a)))
                  , Floating a
                  , HasBasis a
@@ -250,7 +268,12 @@ polyRegularVs n r = polyPolarVs (take (n-1) . repeat $ (rad tau) / fromIntegral 
 --   The points are rotated so that the edge furthest in the direction
 --   of the given vector is perpendicular to it.  (Note: this may do odd
 --   things to non-convex lists of points.)
-orient :: ( Ord a
+orient :: ( OrdB a
+          , IfB (P2 a)
+          , IfB (Rad a)
+          , bool ~ BooleanOf a
+          , bool ~ BooleanOf (Rad a) 
+          , bool ~ BooleanOf (P2 a)
           , Floating a
           , HasBasis a
           , HasTrie (Basis a)
@@ -262,18 +285,19 @@ orient v xs = rotate a xs
     where
         -- The constraint 'a ~ Scalar (V (P2 a))' comes into play because 
         -- of 'rotate' which makes 'a :: Rad a' but at the same time 
-        -- 'th :: Scalar (V (P2 a))'.
-        (n1,x,n2) = maximumBy (comparing (distAlong v . sndOf3))
+        -- 'th :: Rad (Scalar (V (P2 a)))'.
+        (n1,x,n2) = maximumByB (\x y -> distAlong v (sndOf3 x) <* distAlong v (sndOf3 y))
                        (zip3 (tail xs ++ take 1 xs) xs (last xs : init xs))
         distAlong w ((.-. origin) -> p) = signum (w <.> p) * magnitude (project w p)
-        x'        = maximumBy (comparing (distAlong v)) [n1, n2]
+        x'        = maximumByB (\x y -> distAlong v x <* distAlong v y) [n1, n2]
         e         = x' .-. x
         th        = Rad $ acos ((e <.> normalized v) / magnitude e)
-        a | rightTurn (x .+^ v) x x' = tau/4 - th
-          | otherwise                = th - tau/4
+        a = ifB (rightTurn (x .+^ v) x x') 
+                (tau/4 - th) 
+                (th - tau/4)
         sndOf3 (_,b,_) = b
         rightTurn (unp2 -> (x1,y1)) (unp2 -> (x2, y2)) (unp2 -> (x3,y3)) =
-          (x2 - x1)*(y3 - y1) - (y2 - y1)*(x3-x1) < 0
+          (x2 - x1)*(y3 - y1) - (y2 - y1)*(x3-x1) <* 0
 
 ------------------------------------------------------------
 -- Function graphs
