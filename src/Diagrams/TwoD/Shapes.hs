@@ -61,6 +61,7 @@ import Data.Semigroup
 import Data.VectorSpace (Scalar(..), InnerSpace(..))
 import Data.Basis       (HasBasis(..), Basis(..))
 import Data.MemoTrie    (HasTrie(..))
+import Data.Boolean
 
 -- | Create a centered horizontal (L-R) line of the given length.
 hrule :: (Fractional a, PathLike p, V p ~ V2 a) => a -> p
@@ -77,7 +78,7 @@ unitSquare :: ( Ord a
               , HasBasis a
               , InnerSpace a
               , HasTrie (Basis a)
-              , a ~ Scalar a
+              , a ~ Scalar (V (P2 a))
               , PathLike p
               , V p ~ V2 a
               ) => p
@@ -91,7 +92,7 @@ square :: ( Ord a
           , HasBasis a
           , InnerSpace a
           , HasTrie (Basis a)
-          , a ~ Scalar a
+          , a ~ Scalar (V (P2 a))
           , PathLike p
           , Transformable p
           , V p ~ V2 a
@@ -105,7 +106,7 @@ rect :: ( Ord a
         , HasBasis a
         , InnerSpace a
         , HasTrie (Basis a)
-        , a ~ Scalar a
+        , a ~ Scalar (V (P2 a))
         , PathLike p
         , Transformable p
         , V p ~ V2 a
@@ -122,18 +123,18 @@ rect w h = unitSquare # scaleX w # scaleY h
 --   polygons of a given /radius/).
 --
 --   The polygon will be oriented with one edge parallel to the x-axis.
-regPoly :: forall a p. ( Floating a
-                       , Ord a
-                       , InnerSpace a
-                       , HasTrie (Basis a)
-                       , HasBasis a
-                       , a ~ Scalar a
-                       , PathLike p
-                       , V p ~ V2 a
-                       ) => Int -> a -> p
+regPoly :: ( Floating a
+           , Ord a
+           , InnerSpace a
+           , HasTrie (Basis a)
+           , HasBasis a
+           , a ~ Scalar (V (P2 a))
+           , PathLike p
+           , V p ~ V2 a
+           ) => Int -> a -> p
 regPoly n l = polygon with { polyType =
                                PolySides
-                                 (repeat (1/ fromIntegral n :: CircleFrac a))
+                                 (repeat (circleFrac $ 1 / fromIntegral n))
                                  (replicate (n-1) l)
                            , polyOrient = OrientH
                            }
@@ -145,7 +146,7 @@ eqTriangle :: ( Floating a
               , InnerSpace a
               , HasTrie (Basis a)
               , HasBasis a
-              , a ~ Scalar a
+              , a ~ Scalar (V (P2 a))
               , PathLike p
               , V p ~ V2 a
               ) => a -> p
@@ -158,7 +159,7 @@ pentagon :: ( Floating a
             , InnerSpace a
             , HasTrie (Basis a)
             , HasBasis a
-            , a ~ Scalar a
+            , a ~ Scalar (V (P2 a))
             , PathLike p
             , V p ~ V2 a
             ) => a -> p
@@ -171,7 +172,7 @@ hexagon :: ( Floating a
            , InnerSpace a
            , HasTrie (Basis a)
            , HasBasis a
-           , a ~ Scalar a
+           , a ~ Scalar (V (P2 a))
            , PathLike p
            , V p ~ V2 a
            ) => a -> p
@@ -184,7 +185,7 @@ septagon :: ( Floating a
             , InnerSpace a
             , HasTrie (Basis a)
             , HasBasis a
-            , a ~ Scalar a
+            , a ~ Scalar (V (P2 a))
             , PathLike p
             , V p ~ V2 a
             ) => a -> p
@@ -197,7 +198,7 @@ octagon :: ( Floating a
            , InnerSpace a
            , HasTrie (Basis a)
            , HasBasis a
-           , a ~ Scalar a
+           , a ~ Scalar (V (P2 a))
            , PathLike p
            , V p ~ V2 a
            ) => a -> p
@@ -210,7 +211,7 @@ nonagon :: ( Floating a
            , InnerSpace a
            , HasTrie (Basis a)
            , HasBasis a
-           , a ~ Scalar a
+           , a ~ Scalar (V (P2 a))
            , PathLike p
            , V p ~ V2 a
            ) => a -> p
@@ -223,7 +224,7 @@ decagon :: ( Floating a
            , InnerSpace a
            , HasTrie (Basis a)
            , HasBasis a
-           , a ~ Scalar a
+           , a ~ Scalar (V (P2 a))
            , PathLike p
            , V p ~ V2 a
            ) => a -> p
@@ -236,7 +237,7 @@ hendecagon :: ( Floating a
               , InnerSpace a
               , HasTrie (Basis a)
               , HasBasis a
-              , a ~ Scalar a
+              , a ~ Scalar (V (P2 a))
               , PathLike p
               , V p ~ V2 a
               ) => a -> p
@@ -249,7 +250,7 @@ dodecagon :: ( Floating a
              , InnerSpace a
              , HasTrie (Basis a)
              , HasBasis a
-             , a ~ Scalar a
+             , a ~ Scalar (V (P2 a))
              , PathLike p
              , V p ~ V2 a
              ) => a -> p
@@ -269,12 +270,15 @@ dodecagon = regPoly 12
 --   right edge and proceeds counterclockwise.  If you need to specify
 --   a different radius for each corner individually, use
 --   @roundedRect'@ instead.
-roundedRect :: ( Ord a
-               , Floating a
-               , RealFrac a
+roundedRect :: ( OrdB a
+               , EqB a
+               , RealFloat a
                , HasBasis a
                , HasTrie (Basis a)
-               , a ~ Scalar a
+               , a ~ Scalar (V (V2 a))
+               , IfB a
+               , IfB (Trail (V2 a))
+               , BooleanOf a ~ BooleanOf (Trail (V2 a))
                , PathLike p
                , V p ~ V2 a
                ) => a -> a -> a -> p
@@ -287,15 +291,18 @@ roundedRect w h r = roundedRect' w h (with { radiusTL = r,
 --   each corner indivually, using @RoundedRectOpts@. The default corner radius is 0.
 --   Each radius can also be negative, which results in the curves being reversed
 --   to be inward instead of outward.
-roundedRect' :: forall a p. ( Ord a
-                            , Floating a
-                            , RealFrac a
-                            , HasBasis a
-                            , HasTrie (Basis a)
-                            , a ~ Scalar a
-                            , PathLike p
-                            , V p ~ V2 a
-                            ) => a -> a -> RoundedRectOpts a -> p
+roundedRect' :: ( OrdB a
+                , EqB a
+                , RealFloat a
+                , IfB a
+                , IfB (Trail (V2 a))
+                , BooleanOf a ~ BooleanOf (Trail (V2 a))
+                , HasBasis a
+                , HasTrie (Basis a)
+                , a ~ Scalar (V (V2 a))
+                , PathLike p
+                , V p ~ V2 a
+                ) => a -> a -> RoundedRectOpts a -> p
 roundedRect' w h opts
    = pathLike (p2 (w/2, abs rBR - h/2)) True
    . trailSegments
@@ -319,18 +326,21 @@ roundedRect' w h opts
         clampCnr rx ry ro r = let (rx',ry',ro',r') = (rx opts, ry opts, ro opts, r opts)
                                 in clampDiag ro' . clampAdj h ry' . clampAdj w rx' $ r'
         -- prevent curves of adjacent corners from overlapping
-        clampAdj len adj r  = if abs r > len/2
-                                then sign r * max (len/2) (min (len - abs adj) (abs r))
-                                else r
+        clampAdj len adj r  = ifB (abs r >* len/2)
+                                  (sign r * max (len/2) (min (len - abs adj) (abs r)))
+                                  (r)
         -- prevent inward curves of diagonally opposite corners from intersecting
-        clampDiag opp r     = if r < 0 && opp < 0 && abs r > diag / 2
-                                then sign r * max (diag / 2) (min (abs r) (diag + opp))
-                                else r
+        clampDiag opp r     = ifB (r <* 0 &&* opp <* 0 &&* abs r >* diag / 2)
+                                  (sign r * max (diag / 2) (min (abs r) (diag + opp)))
+                                  (r)
         sign n = if n < 0 then -1 else 1
-        mkCorner k r | r == 0    = mempty
-                     | r < 0     = doArc 3 2
-                     | otherwise = doArc 0 1
-          where doArc d d' = arc' r ((k+d)/4) ((k+d')/4:: CircleFrac a)
+        mkCorner k r = ifB (r ==* 0) 
+                           (mempty) 
+                           (ifB (r <* 0) 
+                                (doArc 3 2) 
+                                (doArc 0 1)
+                           )
+          where doArc d d' = arc' r ((k+d)/4) (circleFrac $ (k+d')/4)
 
 data RoundedRectOpts a = RoundedRectOpts { radiusTL :: a
                                          , radiusTR :: a
