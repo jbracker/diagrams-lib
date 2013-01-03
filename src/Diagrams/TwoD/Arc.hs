@@ -39,6 +39,7 @@ import Data.VectorSpace((^-^), (*^), negateV, Scalar(..))
 import Data.AdditiveGroup (AdditiveGroup(..))
 import Data.Basis (HasBasis(..), Basis(..))
 import Data.MemoTrie (HasTrie(..))
+import Data.Boolean
 
 -- For details of this approximation see:
 --   http://www.tinaja.com/glib/bezcirc2.pdf
@@ -49,8 +50,6 @@ import Data.MemoTrie (HasTrie(..))
 --   quadrant.
 bezierFromSweepQ1 :: ( Floating a
                      , Fractional (Scalar a)
-                     , Ord a
-                     , AdditiveGroup a
                      , HasBasis a
                      , HasTrie (Basis a)
                      ) => Rad a -> Segment (V2 a)
