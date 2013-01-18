@@ -102,55 +102,77 @@ the approximation error.
 
 -- | Given a start angle @s@ and an end angle @e@, @'arcT' s e@ is the
 --   'Trail' of a radius one arc counterclockwise between the two angles.
-arcT :: ( Ord a
-        , RealFloat a
+arcT :: ( OrdB a
+        , RealFloatB a
         , Fractional (Scalar a)
         , AdditiveGroup a
         , HasBasis a
         , HasTrie (Basis a)
         , Angle m a
-        , Ord (m a)
+        , OrdB (m a)
+        , OrdB (CircleFrac a)
+        , OrdB (Rad a)
+        , IfB (Trail (V2 a))
+        , bool ~ BooleanOf (Trail (V2 a))
+        , bool ~ BooleanOf (CircleFrac a)
+        , bool ~ BooleanOf (Rad a)
         ) => m a -> m a -> Trail (V2 a)
-arcT start end
-    | e < s     = arcT s (e + fromIntegral d)
-    | otherwise = Trail bs (sweep >= tau)
-  where sweep = convertAngle $ end - start
-        bs    = map (rotate start) . bezierFromSweep $ sweep
-        
-        -- We want to compare the start and the end and in case
-        -- there isn't some law about 'Angle' ordering, we use a
-        -- known 'Angle' for that.
-        s = circleFrac $ convertAngle start
-        e = convertAngle end
-        d = ceiling (s - e) :: Integer
+arcT start end = 
+  ifB (e <* s)
+      (arcT s (e + fromIntegral d))
+      (ifB (sweep >=* tau) -- TODO: Generalize Trail to use BooleanOf.
+           (Trail bs True)
+           (Trail bs False))--(Trail bs (sweep >=* tau))
+    where sweep = convertAngle $ end - start
+          bs    = map (rotate start) . bezierFromSweep $ sweep
+          
+          -- We want to compare the start and the end and in case
+          -- there isn't some law about 'Angle' ordering, we use a
+          -- known 'Angle' for that.
+          s = circleFrac $ convertAngle start
+          e = convertAngle end
+          d = ceiling (s - e) :: Integer
 
 -- | Given a start angle @s@ and an end angle @e@, @'arc' s e@ is the
 --   path of a radius one arc counterclockwise between the two angles.
 --   The origin of the arc is its center.
-arc :: ( Ord a
-       , RealFloat a
+arc :: ( OrdB a
+       , RealFloatB a
        , Fractional (Scalar a)
        , AdditiveGroup a
        , HasBasis a
        , HasTrie (Basis a)
        , Angle m a
-       , Ord (m a)
+       , OrdB (m a)
+       , OrdB (CircleFrac a)
+       , OrdB (Rad a)
        , PathLike p
        , V p ~ V2 a
+       , IfB (Trail (V2 a))
+       , bool ~ BooleanOf (Trail (V2 a))
+       , bool ~ BooleanOf (CircleFrac a)
+       , bool ~ BooleanOf (Rad a)
        ) => m a -> m a -> p
 arc start end = pathLike (rotate start $ p2 (1,0))
                          False
                          (trailSegments $ arcT start end)
 
 -- | Like 'arc' but clockwise.
-arcCW :: ( RealFloat a
+arcCW :: ( OrdB a
+         , RealFloatB a
          , Fractional (Scalar a)
          , HasBasis a
          , HasTrie (Basis a)
          , Angle m a
-         , Ord (m a)
+         , OrdB (m a)
+         , OrdB (CircleFrac a)
+         , OrdB (Rad a)
          , PathLike p
          , V p ~ V2 a
+         , IfB (Trail (V2 a))
+         , bool ~ BooleanOf (Trail (V2 a))
+         , bool ~ BooleanOf (CircleFrac a)
+         , bool ~ BooleanOf (Rad a)
          ) => m a -> m a -> p
 arcCW start end = pathLike (rotate start $ p2 (1,0))
                            False
@@ -165,16 +187,22 @@ arcCW start end = pathLike (rotate start $ p2 (1,0))
 --   the two angles.  If a negative radius is given, the arc will
 --   be clockwise, otherwise it will be counterclockwise. The origin 
 --   of the arc is its center.
-arc' :: ( Eq a
-        , Ord a
-        , RealFloat a
+arc' :: ( EqB a
+        , OrdB a
+        , RealFloatB a
         , HasBasis a
         , HasTrie (Basis a)
         , a ~ Scalar (V (Trail (V2 a)))
         , Angle m a
-        , Ord (m a)
+        , OrdB (m a)
+        , OrdB (CircleFrac a)
+        , OrdB (Rad a)
         , PathLike p
         , V p ~ V2 a
+        , IfB (Trail (V2 a))
+        , bool ~ BooleanOf (Trail (V2 a))
+        , bool ~ BooleanOf (CircleFrac a)
+        , bool ~ BooleanOf (Rad a)
         ) => a -> m a -> m a -> p
 arc' r start end = pathLike (rotate start $ p2 (abs r,0))
                    False
@@ -184,15 +212,21 @@ arc' r start end = pathLike (rotate start $ p2 (abs r,0))
 
 -- | Create a circular wedge of the given radius, beginning at the
 --   first angle and extending counterclockwise to the second.
-wedge :: ( Ord a
-         , RealFloat a
+wedge :: ( OrdB a
+         , RealFloatB a
          , HasBasis a
          , HasTrie (Basis a)
          , a ~ Scalar (V (V2 a))
          , Angle m a
-         , Ord (m a)
+         , OrdB (m a)
+         , OrdB (CircleFrac a)
+         , OrdB (Rad a)
          , PathLike p
          , V p ~ V2 a
+         , IfB (Trail (V2 a))
+         , bool ~ BooleanOf (Trail (V2 a))
+         , bool ~ BooleanOf (CircleFrac a)
+         , bool ~ BooleanOf (Rad a)
          ) => a -> m a -> m a -> p
 wedge r a1 a2 = pathLikeFromTrail $ fromOffsets [r *^ e a1]
                                  <> arc a1 a2 # scale r

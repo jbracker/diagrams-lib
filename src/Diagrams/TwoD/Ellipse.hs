@@ -27,6 +27,7 @@ module Diagrams.TwoD.Ellipse
 import Data.VectorSpace (Scalar(..))
 import Data.Basis       (HasBasis(..), Basis(..))
 import Data.MemoTrie    (HasTrie(..))
+import Data.Boolean
 
 import Diagrams.Core
 
@@ -38,43 +39,58 @@ import Diagrams.Path
 import Diagrams.Util
 
 -- | A circle of radius 1, with center at the origin.
-unitCircle :: forall a p. ( Ord a
-                          , Floating a
-                          , RealFrac a
-                          , HasBasis a
-                          , HasTrie (Basis a)
-                          , a ~ Scalar a
-                          , PathLike p
-                          , V p ~ V2 a
-                          ) => p
-unitCircle = pathLike (p2 (1,0)) True $ trailSegments (arcT 0 (tau::Rad a))
+unitCircle :: ( OrdB a
+              , RealFloatB a
+              , HasBasis a
+              , HasTrie (Basis a)
+              , a ~ Scalar a
+              , PathLike p
+              , V p ~ V2 a
+              , OrdB (CircleFrac a)
+              , OrdB (Rad a)
+              , IfB (Trail (V2 a))
+              , bool ~ BooleanOf (Trail (V2 a))
+              , bool ~ BooleanOf (Rad a)
+              , bool ~ BooleanOf (CircleFrac a)
+              ) => p
+unitCircle = pathLike (p2 (1,0)) True $ trailSegments (arcT 0 (rad tau))
 
 -- | A circle of the given radius, centered at the origin.  As a path,
 --   it begins at (r,0).
-circle :: ( Ord a
-          , Floating a
-          , RealFrac a
+circle :: ( OrdB a
+          , RealFloatB a
           , HasBasis a
           , HasTrie (Basis a)
           , a ~ Scalar a
           , PathLike p
           , V p ~ V2 a
           , Transformable p
+          , OrdB (CircleFrac a)
+          , OrdB (Rad a)
+          , IfB (Trail (V2 a))
+          , bool ~ BooleanOf (Trail (V2 a))
+          , bool ~ BooleanOf (Rad a)
+          , bool ~ BooleanOf (CircleFrac a)
           ) => a -> p
 circle d = unitCircle # scale d
 
 -- | @ellipse e@ constructs an ellipse with eccentricity @e@ by
 --   scaling the unit circle in the X direction.  The eccentricity must
 --   be within the interval [0,1).
-ellipse :: ( Ord a
-           , Floating a
-           , RealFrac a
+ellipse :: ( OrdB a
+           , RealFloatB a
            , HasBasis a
            , HasTrie (Basis a)
            , a ~ Scalar a
            , PathLike p
            , V p ~ V2 a
            , Transformable p
+           , OrdB (CircleFrac a)
+           , OrdB (Rad a)
+           , IfB (Trail (V2 a))
+           , bool ~ BooleanOf (Trail (V2 a))
+           , bool ~ BooleanOf (Rad a)
+           , bool ~ BooleanOf (CircleFrac a)
            ) => a -> p
 ellipse e
     | e >= 0 && e < 1  = scaleX (sqrt (1 - e*e)) unitCircle
@@ -83,14 +99,19 @@ ellipse e
 -- | @ellipseXY x y@ creates an axis-aligned ellipse, centered at the
 --   origin, with radius @x@ along the x-axis and radius @y@ along the
 --   y-axis.
-ellipseXY :: ( Ord a
-             , Floating a
-             , RealFrac a
+ellipseXY :: ( OrdB a
+             , RealFloatB a
              , HasBasis a
              , HasTrie (Basis a)
              , a ~ Scalar a
              , PathLike p
              , V p ~ V2 a
              , Transformable p
+             , OrdB (CircleFrac a)
+             , OrdB (Rad a)
+             , IfB (Trail (V2 a))
+             , bool ~ BooleanOf (Trail (V2 a))
+             , bool ~ BooleanOf (Rad a)
+             , bool ~ BooleanOf (CircleFrac a)
              ) => a -> a -> p
 ellipseXY x y = unitCircle # scaleX x # scaleY y
